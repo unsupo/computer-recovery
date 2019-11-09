@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# this script is to document cloning of repos
+if [ "$1" == "clone" ]; then
+  echo "$2,$(pwd)" >> ~/git-repos
+fi
+git_ "$@"
