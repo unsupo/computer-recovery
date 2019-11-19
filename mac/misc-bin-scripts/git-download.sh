@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # git dir
 git_links=$1 # github-links.txt
 git_dir=$2  #~/git
