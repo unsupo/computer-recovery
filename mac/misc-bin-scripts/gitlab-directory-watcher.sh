@@ -70,7 +70,17 @@ watch_directory(){
         p=${ADDR[1]}
         es=${ADDR[2]}
         IFS='/' read -ra pdARR <<< "$p"
-        pd=${pdARR[4]}
+        n=0
+        for i in "${pdARR[@]}"; do
+            if [[ ${n} == 1 ]]; then
+                pd=${i}
+                break
+            fi
+            if [[ "$i" == "code_projects" ]]; then
+                n=1
+            fi
+        done
+#        pd=${pdARR[4]}
         IFS=' ' read -ra esARR <<< "$es"
         if [[ "${esARR[${#esARR[@]}-1]}" == "IsFile" ]]; then
             commit_project ${p} "~/code_projects/$pd"
