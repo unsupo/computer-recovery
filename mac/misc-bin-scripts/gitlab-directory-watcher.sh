@@ -23,12 +23,15 @@
 # then another process will kick off every hour and check for count(*) of table and if it has data then
 # iterate over it and either create repo and push it to gitlab or simply push it gitlab
 
-# make sure mac dock is as expected
-# dockutil --list --homeloc /Volumes/Macintosh\ HD/home
 
-# manage mac app store. with mas
-# upgrade app store applications
-# mas upgrade
+
+# Place in ~/Library/LaunchAgents
+# Run launchctl load ~/Library/LaunchAgents/com.user.loginscript.plist and log out/in to test (or to test directly, run launchctl start com.user.loginscript)
+# Tail /var/log/system.log for error messages.
+# chmod a+x
+# $HOME/Library/LaunchAgents
+logdir=~/gitlab-watcher/logs
+mkdir -p ${logdir}
 
 token="F9zyUdjqi9pKo7QswLKu"
 gitlab="localhost"
@@ -55,16 +58,31 @@ delete_project(){
     gitlab_api DELETE "projects/$(get_project_id $1)"
 }
 commit_project(){
-    cdir=$(pwd)
+#    bash --rcfile <(echo ". ~/.bashrc;
+    bash -c "
     cd $1
     git add .
-    git commit -m "$2"
-    git push
-    cd ${cdir}
+    git commit -m \"$2\"
+    git push ||  git push --set-upstream origin master
+    "
+}
+
+initial_commit(){
+#    bash --rcfile <(echo ". ~/.bashrc;
+    bash -c "
+    cd $1
+    git init
+    git remote add origin ssh://git@${gitlab}:2224/unsupo/$2.git
+    [[ -f README.md ]] || echo \"$1\" > README.md
+    git add .
+    git commit -m \"Initial commit\"
+    git push -u origin master
+    "
 }
 
 watch_directory(){
-    fswatch -uEe '.*/gitlab/data/*' --format '%t|%p|%f' ~/code_projects | while read event; do # Ee '.*/code_projects/.*/' # exclude # -l300 # latency
+    fswatch=/usr/local/bin/fswatch
+    ${fswatch} -uEe '.*/gitlab/[data|logs]/*' -e '.*/\.git' --format '%t|%p|%f' ~/code_projects | while read event; do # Ee '.*/code_projects/.*/' # exclude # -l300 # latency
         IFS='|' read -ra ADDR <<< "$event"
         d=${ADDR[0]}
         p=${ADDR[1]}
@@ -80,28 +98,26 @@ watch_directory(){
                 n=1
             fi
         done
-#        pd=${pdARR[4]}
         IFS=' ' read -ra esARR <<< "$es"
         if [[ "${esARR[${#esARR[@]}-1]}" == "IsFile" ]]; then
-            commit_project ${p} "~/code_projects/$pd"
+            echo "commit_project \"~/code_projects/$pd\" ${event}"
+            commit_project "~/code_projects/$pd" "${event}"
+            continue
+        fi
+        if [[ ${p} =~ ".*/code_projects/.*/" ]]; then
             continue
         fi
         if [[ "${esARR[0]}" == "Created" && "${esARR[${#esARR[@]}-1]}" == "IsDir" ]]; then
+            echo "create project ${p}"
             create_gitlab_project ${p}
+            initial_commit ${p} $(get_name_from_path ${p})
         fi
         # TODO deleted directories should i just delete it from gitlab or rename it to deleted?
         if [[ "${esARR[0]}" == "Deleted" && "${esARR[${#esARR[@]}-1]}" == "IsDir" ]]; then
+            echo "delete project ${p}"
             delete_project ${p}
         fi
     done
-}
-
-initial_commit(){
-    git init
-    git remote add origin ssh://git@${gitlab}:2224/unsupo/$1.git
-    git add .
-    git commit -m "Initial commit"
-    git push -u origin master
 }
 
 add_all_directories(){
@@ -111,8 +127,7 @@ add_all_directories(){
         if ! get_project_id ${name} 2>&1 >/dev/null; then
             echo "creating $name"
             create_gitlab_project ${name}
-            cd ${d}
-            initial_commit ${name}
+            initial_commit ${d} ${name}
         fi
     done
 }
@@ -125,3 +140,5 @@ watch_directory
 #for d in $(ls -da ~/code_projects/*); do
 #    delete_project $(get_name_from_path ${d})
 #done
+
+#delete_project $1
