@@ -1,2 +1,0 @@
-https://github.com/unsupo/VPN-Utility.git
-https://github.com/unsupo/SSH-Utility.git

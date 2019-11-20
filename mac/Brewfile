@@ -18,6 +18,7 @@ brew "docker", link: false
 brew "docker-compose", link: false
 brew "docker-machine", link: false
 brew "docker-machine-driver-xhyve"
+brew "dockutil"
 brew "dos2unix"
 brew "webp"
 brew "ffmpeg"
@@ -28,18 +29,21 @@ brew "git-lfs"
 brew "gnupg"
 brew "go"
 brew "grep"
+brew "httpie"
 brew "hub"
 brew "imagemagick"
 brew "kubernetes-cli"
 brew "little-cms"
+brew "mas"
 brew "nmap"
 brew "node"
 brew "numpy", link: false
 brew "opencv", link: false
+brew "openjdk"
 brew "openssl"
 brew "p7zip"
 brew "packer"
-brew "postgresql", restart_service: true
+brew "postgresql"
 brew "python@2"
 brew "qemu"
 brew "reattach-to-user-namespace"
@@ -50,6 +54,7 @@ brew "unrar"
 brew "unzip"
 brew "urlview"
 brew "watch"
+brew "watchman"
 brew "wget"
 brew "xhyve"
 cask "android-ndk"
@@ -58,11 +63,22 @@ cask "android-sdk"
 cask "angry-ip-scanner"
 cask "atom"
 cask "bitbar"
+cask "boostnote"
 cask "docker"
+cask "google-backup-and-sync"
 cask "intellij-idea"
+cask "java"
 cask "kitematic"
+cask "launchcontrol"
 cask "mactex"
 cask "mounty"
 cask "quip"
 cask "vagrant"
 cask "vagrant-manager"
+cask "virtualbox"
+mas "GarageBand", id: 682658836
+mas "iMovie", id: 408981434
+mas "Keynote", id: 409183694
+mas "Numbers", id: 409203825
+mas "Pages", id: 409201541
+mas "Xcode", id: 497799835

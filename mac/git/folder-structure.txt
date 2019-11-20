@@ -1,0 +1,2 @@
+~/git|github-links.txt
+~/git_work|gitwork-links.txt

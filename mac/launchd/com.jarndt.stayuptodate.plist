@@ -5,11 +5,11 @@
         <key>Label</key>
         <string>com.jarndt.gitlabwatcherpusher</string>
         <key>ProgramArguments</key>
-        <array><string>/Users/jarndt/git/computer-recovery/mac/misc-bin-scripts/gitlab-directory-watcher.sh</string></array>
+        <array><string>/Users/jarndt/git/computer-recovery/mac/misc-bin-scripts/stay-uptodate.sh</string></array>
         <key>StandardOutPath</key>
-        <string>/Users/jarndt/log/gitlab-directory-watcher.log</string>
+        <string>/Users/jarndt/log/stay-uptodate.log</string>
         <key>StandardErrorPath</key>
-        <string>/Users/jarndt/log/gitlab-directory-watcher.log</string>
+        <string>/Users/jarndt/log/stay-uptodate.log</string>
         <key>RunAtLoad</key>
         <true/>
     </dict>

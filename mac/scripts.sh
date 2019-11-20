@@ -17,6 +17,9 @@ brew bundle cleanup --force
 # done installing brew
 cdir=$(pwd)
 
+# make dirs
+mkdir -p ~/log
+
 # run all scripts in scripts directory
 find "$cdir"/scripts -type f -name '*.sh' -exec sh {} \;
 
@@ -26,7 +29,7 @@ sh "$git_downloader" "$cdir"/gitwork-links.txt ~/git_work
 
 # link dotfiles
 dotfiles_dir=dotfiles
-find "$cdir"/$dotfiles_dir/ -type f -exec ln -fs {} ~/ \;
+find "$cdir"/${dotfiles_dir}/ -type f -exec ln -fs {} ~/ \;
 
 cd "$cdir" || exit
 
@@ -34,4 +37,4 @@ cd "$cdir" || exit
 bitbar_plugins=bitbar-plugins
 mkdir -p "$BITBAR_DIR"
 #sudo find "$cdir"/$bitbar_plugins/ -type f -exec ln -fs {} "$BITBAR_DIR"/ \;
-ln -fs "$cdir"/$bitbar_plugins "$BITBAR_DIR"
+ln -fs "$cdir"/${bitbar_plugins} "$BITBAR_DIR"
