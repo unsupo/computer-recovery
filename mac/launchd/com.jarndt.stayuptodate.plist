@@ -3,7 +3,7 @@
 <plist version="1.0">
     <dict>
         <key>Label</key>
-        <string>com.jarndt.gitlabwatcherpusher</string>
+        <string>com.jarndt.stayuptodate</string>
         <key>ProgramArguments</key>
         <array><string>/Users/jarndt/git/computer-recovery/mac/misc-bin-scripts/stay-uptodate.sh</string></array>
         <key>StandardOutPath</key>
@@ -12,5 +12,7 @@
         <string>/Users/jarndt/log/stay-uptodate.log</string>
         <key>RunAtLoad</key>
         <true/>
+        <key>StartInterval</key>
+        <integer>300</integer>
     </dict>
 </plist>

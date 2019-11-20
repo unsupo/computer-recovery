@@ -23,18 +23,22 @@ mkdir -p ~/log
 # run all scripts in scripts directory
 find "$cdir"/scripts -type f -name '*.sh' -exec sh {} \;
 
-git_downloader="$cdir/misc-bin-scripts/git-download.sh"
-sh "$git_downloader" "$cdir"/github-links.txt ~/git
-sh "$git_downloader" "$cdir"/gitwork-links.txt ~/git_work
+# git (can add this to scripts)
+git_manager="$cdir/misc-bin-scripts/git-manager.sh"
+sh ${git_manager} ${cdir}/git/folder-structure.txt
 
 # link dotfiles
 dotfiles_dir=dotfiles
 find "$cdir"/${dotfiles_dir}/ -type f -exec ln -fs {} ~/ \;
 
-cd "$cdir" || exit
+cd "$cdir" || exit # forgot why i put this
 
 # link bitbar plugins
 bitbar_plugins=bitbar-plugins
-mkdir -p "$BITBAR_DIR"
+bitbar_dir=~/bitbar-plugins/
+mkdir -p "$bitbar_dir" 2>/dev/null
 #sudo find "$cdir"/$bitbar_plugins/ -type f -exec ln -fs {} "$BITBAR_DIR"/ \;
-ln -fs "$cdir"/${bitbar_plugins} "$BITBAR_DIR"
+ln -fs "$cdir"/${bitbar_plugins} "$bitbar_dir"
+
+# launchctl (can add this to scripts)
+#sh ${cdir}/misc-bin-scripts/launchd-manager.sh ${cdir}/launchd
