@@ -1,5 +1,6 @@
-# personal links
+# personal repos
 https://github.com/unsupo/computer-recovery.git
 https://github.com/unsupo/VPN-Utility.git
 https://github.com/unsupo/SSH-Utility.git
-# cool links
+# cool repos
+https://github.com/BoostIO/Boostnote.git

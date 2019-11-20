@@ -5,6 +5,8 @@
 #done
 # execute all scripts in the scripts directory
 # install brew
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 if ! command -v brew >/dev/null; then
   URL_BREW='https://raw.githubusercontent.com/Homebrew/install/master/install'
 
@@ -12,6 +14,7 @@ if ! command -v brew >/dev/null; then
   echo | /usr/bin/ruby -e "$(curl -fsSL $URL_BREW)" > /dev/null
   if $?; then echo 'OK'; else echo 'NG'; fi
 fi
+cd ${DIR}
 brew bundle
 brew bundle cleanup --force
 # done installing brew
