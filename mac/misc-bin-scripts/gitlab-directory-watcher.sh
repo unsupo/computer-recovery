@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# fswatch -uEe '.*/code_projects/.*/' --format '%t|%p|%f' ~/code_projects
-# the idea with this script is to watch code_projects directory, then when a new directory is made
+# fswatch -uEe '.*/$dir_name/.*/' --format '%t|%p|%f' ~/$dir_name
+# the idea with this script is to watch $dir_name directory, then when a new directory is made
 # it will create a project in local gitlab and commit the whole directory
 # then it will watch the directory for any changes and create push it to the directory
 # it will aggregate the changed directories and create directories so it only
@@ -15,7 +15,7 @@
 
 # if it's not then download it from my github repo which should also have the create repo script and start it up docker-compose up -d
 
-# fswatch ~/code_projects (create dir if not exist)
+# fswatch ~/$dir_name (create dir if not exist)
 # fswatch -0 .|xargs -0 -n 1 -I {}
 # store changed directory names in sqlite database with primary key on the name to avoid dupes
 # also somehow watch gitlab (any hooks in gitlab for this?)
@@ -30,9 +30,12 @@
 # Tail /var/log/system.log for error messages.
 # chmod a+x
 # $HOME/Library/LaunchAgents
-logdir=~/gitlab-watcher/logs
+logdir=~/log
 mkdir -p ${logdir}
+dir_name=code_projects
+dir=~/${dir_name}/
 
+# this is a localhost token so it probably isn't an issue in git
 token="F9zyUdjqi9pKo7QswLKu"
 gitlab="localhost"
 gitlaburl="http://$gitlab:8929"
@@ -52,37 +55,85 @@ get_project_id(){
     gitlab_api GET "projects" | python -c "import json,sys;obj=json.load(sys.stdin);print [i['id'] for i in obj if i['name']=='$(get_name_from_path $1)'][0];"
 }
 rename_project(){
-    gitlab_api PUT "projects/$(get_project_id $1)?name=$2"
+    gitlab_api PUT "projects/$(get_project_id $1)?name=$2&path=$2"
 }
 delete_project(){
     gitlab_api DELETE "projects/$(get_project_id $1)"
 }
-commit_project(){
-#    bash --rcfile <(echo ". ~/.bashrc;
-    bash -c "
-    cd $1
-    git add .
-    git commit -m \"$2\"
-    git push ||  git push --set-upstream origin master
-    "
+
+add_all_directories(){
+    for d in $(ls -da ${dir}*); do
+        name=$(get_name_from_path ${d})
+        if ! get_project_id ${name} 2>&1 >/dev/null; then
+            echo "creating $name"
+            create_gitlab_project ${name}
+            initial_commit ${d} ${name}
+        fi
+    done
+}
+
+delete_removed_directories(){
+    all_projects=$(gitlab_api GET "/projects" | python -c "\
+import json,sys
+obj=json.load(sys.stdin)
+print '|'.join([i['name'] for i in obj ]);\
+    ")
+    IFS='|' read -ra ADDR <<< "$all_projects"
+    for i in "${ADDR[@]}"; do
+        [[ $i == deleted-* ]] && continue
+        if ! ls ${dir}${i} >/dev/null 2>&1; then
+            echo "deleted $i, renaming project in gitlab"
+            rename_project ${i} "deleted-$i"
+        fi
+    done
 }
 
 initial_commit(){
 #    bash --rcfile <(echo ". ~/.bashrc;
     bash -c "
-    cd $1
+    cd $1 || exit 1
     git init
     git remote add origin ssh://git@${gitlab}:2224/unsupo/$2.git
     [[ -f README.md ]] || echo \"$1\" > README.md
     git add .
     git commit -m \"Initial commit\"
     git push -u origin master
+    " || delete_removed_directories
+}
+commit_project(){
+#    bash --rcfile <(echo ". ~/.bashrc;
+    bash -c "
+    cd $1 || exit 1 # git repo no longer exists?
+    git add . || exit 2
+    git commit -m \"$2\"
+    git push ||  git push --set-upstream origin master
     "
+    [[ "$?" == "1" ]] && delete_removed_directories
+    [[ "$?" == "2" ]] && initial_commit
+}
+
+commit_all_directories(){
+    for d in $(ls -da ${dir}*); do
+        commit_project ${d} $(date)
+    done
+}
+
+create_and_commit(){
+    (
+    create_gitlab_project $1;
+    initial_commit $1 $2;
+    )
+}
+
+init(){
+    add_all_directories
+    commit_all_directories
+    delete_removed_directories
 }
 
 watch_directory(){
     fswatch=/usr/local/bin/fswatch
-    ${fswatch} -uEe '.*/gitlab/[data|logs]/*' -e '.*/\.git' --format '%t|%p|%f' ~/code_projects | while read event; do # Ee '.*/code_projects/.*/' # exclude # -l300 # latency
+    ${fswatch} -uEe '.*/gitlab/[data|logs]/*' -e '.*/\.git' --format '%t|%p|%f' -l5 ~/${dir_name} | while read event; do # Ee '.*/$dir_name/.*/' # exclude # -l300 # latency
         IFS='|' read -ra ADDR <<< "$event"
         d=${ADDR[0]}
         p=${ADDR[1]}
@@ -94,51 +145,46 @@ watch_directory(){
                 pd=${i}
                 break
             fi
-            if [[ "$i" == "code_projects" ]]; then
+            if [[ "$i" == "$dir_name" ]]; then
                 n=1
             fi
         done
         IFS=' ' read -ra esARR <<< "$es"
         if [[ "${esARR[${#esARR[@]}-1]}" == "IsFile" ]]; then
-            echo "commit_project \"~/code_projects/$pd\" ${event}"
-            commit_project "~/code_projects/$pd" "${event}"
+            echo "commit_project \"$dir$pd\" ${event}"
+            commit_project "$dir$pd" "${event}"
             continue
         fi
-        if [[ ${p} =~ ".*/code_projects/.*/" ]]; then
+        if [[ ${p} =~ ^.*/\$dir_name/.*/$ ]]; then
+            echo "continuing because this is a subdirectory $p"
             continue
         fi
         if [[ "${esARR[0]}" == "Created" && "${esARR[${#esARR[@]}-1]}" == "IsDir" ]]; then
             echo "create project ${p}"
-            create_gitlab_project ${p}
-            initial_commit ${p} $(get_name_from_path ${p})
+            create_and_commit ${p} $(get_name_from_path ${p})
         fi
         # TODO deleted directories should i just delete it from gitlab or rename it to deleted?
         if [[ "${esARR[0]}" == "Deleted" && "${esARR[${#esARR[@]}-1]}" == "IsDir" ]]; then
-            echo "delete project ${p}"
-            delete_project ${p}
-        fi
-    done
-}
-
-add_all_directories(){
-    cdir=$(pwd)
-    for d in $(ls -da ~/code_projects/*); do
-        name=$(get_name_from_path ${d})
-        if ! get_project_id ${name} 2>&1 >/dev/null; then
-            echo "creating $name"
-            create_gitlab_project ${name}
-            initial_commit ${d} ${name}
+            echo "deleted project ${p}, renaming to deleted-$p"
+#            delete_project ${p}
+            rename_project ${p} "deleted-$p" # zz so it appears at the bottom of the list
         fi
     done
 }
 
 # this is for missed directories
-add_all_directories
+init
 watch_directory
 
+#gitlab_api GET "/projects/$(get_project_id deleted-deleted-deleted-deleted-deleted-new-project)"
+
+#delete_removed_directories
+#delete_project "deleted-test"
+
 #delete_project test
-#for d in $(ls -da ~/code_projects/*); do
+#for d in $(ls -da $dir*); do
 #    delete_project $(get_name_from_path ${d})
 #done
+#create_and_commit test testing
 
 #delete_project $1

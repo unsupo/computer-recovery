@@ -44,4 +44,4 @@ mkdir -p "$bitbar_dir" 2>/dev/null
 ln -fs "$cdir"/${bitbar_plugins} "$bitbar_dir"
 
 # launchctl (can add this to scripts)
-#sh ${cdir}/misc-bin-scripts/launchd-manager.sh ${cdir}/launchd
+sh ${cdir}/misc-bin-scripts/launchd-manager.sh ${cdir}/launchd

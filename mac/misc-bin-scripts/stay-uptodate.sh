@@ -11,7 +11,7 @@ function get_date(){
 }
 datefile=~/log/stayuptodate.date
 
-if [[ -f ${datefile} && get_date -le $(cat ${datefile}) ]]; then
+if [[ -f ${datefile} && "$(get_date)" -le "$(cat ${datefile})" ]]; then
     exit 0
 fi
 

@@ -2,6 +2,6 @@
 # this script is to document all brew installed apps
 
 brew_ "$@"
-if [ "$1" == "install" ] || [ "$2" == "install" ]; then
-  { brew bundle dump --force && mv Brewfile $COMPUTER_RECOVERY_DIR/mac/; } &
+if [[ "$1" == "install" ]] || [[ "$2" == "install" ]]; then
+  { brew bundle dump --force && mv Brewfile ~/git/computer-recovery/mac/; } &
 fi
