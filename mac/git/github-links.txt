@@ -2,5 +2,8 @@
 https://github.com/unsupo/computer-recovery.git
 https://github.com/unsupo/VPN-Utility.git
 https://github.com/unsupo/SSH-Utility.git
-# cool repos
+https://github.com/unsupo/gitlab-cli.git
+
+# cool repos i'd like to hack
 https://github.com/BoostIO/Boostnote.git
+https://github.com/atom/atom.git

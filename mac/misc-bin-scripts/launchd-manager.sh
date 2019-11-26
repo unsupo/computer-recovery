@@ -8,8 +8,8 @@ for i in $(find $1 -type f -name '*.plist' -print); do
     p=${i}
     chmod a+x ${p}
     ln -sf ${p} ~/Library/LaunchAgents/ 2>/dev/null
-    launchctl load ${p}
-    n=$(basename p)
+    launchctl load ${p} 2>/dev/null
+    n=$(basename ${p})
     n=${n%.*}
     exit_status=$(launchctl list ${n} | grep LastExitStatus | grep -Eo '[0-9]+')
     if [[ ${exit_status} != "0" ]]; then

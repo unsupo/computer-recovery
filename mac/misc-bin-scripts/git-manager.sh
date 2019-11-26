@@ -6,8 +6,8 @@ path=$(dirname ${folder_structure})
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 while read l || [[ -n "$l" ]]; do
-    # skip comment characters
-    if [[ ${l} =~ ^#.*$ ]]; then continue; fi
+    # skip comment characters and empty lines
+    if [[ ${l} =~ ^#.*$ || -z ${l} ]]; then continue; fi
     # split on pipe
     IFS='|' read -ra ADDR <<< "$l"
     d=${ADDR[0]} # directory to create and put all repos

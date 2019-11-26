@@ -9,15 +9,15 @@ ln -s "$git_links" "$git_dir" 2>/dev/null
 cd "$git_dir"
 
 gdb=$(dirname ${git_dir})
-gdn=$(basename ${git_dir})
+gdn=$(basename ${git_dir} || { echo "something went wrong gdn"; exit 1; })
 tmp=${gdb}/tmp_${gdn}
-gl=$(basename ${git_links})
+gl=$(basename ${git_links} || { echo "something went wrong gl"; exit 1; })
 # download all links in github-links.txt file
 #< "$git_links" xargs -I % git clone % # don't use fancy
 while read l  || [[ -n "$l" ]]; do
     # skip comment characters
-    if [[ ${l} =~ ^#.*$ ]]; then continue; fi
-    n=$(basename ${l})
+    if [[ -z ${l} || ${l} =~ ^#.*$ ]]; then continue; fi
+    n=$(basename ${l} || { echo "something went wrong n"; exit 1; })
     n="${n%.*}"
     if ls ${tmp}/${n} >/dev/null 2>&1; then
         echo "Found $n in $tmp, moving back"
@@ -30,7 +30,8 @@ done < ${git_links}
 
 # move unused repos to tmp_${git_dir}
 for i in $(ls -d ${git_dir}/*); do
-    n=$(basename ${i})
+    [[ -z ${i} ]] && continue
+    n=$(basename ${i} || { echo "something went wrong n2"; exit 1; })
     [[ ${n} == ${gl} ]] && continue
     if ! grep ${n} ${git_links} >/dev/null; then
         mkdir -p ${tmp} 2>/dev/null

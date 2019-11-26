@@ -30,6 +30,10 @@
 # Tail /var/log/system.log for error messages.
 # chmod a+x
 # $HOME/Library/LaunchAgents
+
+# TODO make this work for existing git repos IE the ones in ~/git and ~/gitwork this will help in file recovery and documentation
+# TODO turn the gitlab methods into a separate bin script
+
 logdir=~/log
 mkdir -p ${logdir}
 dir_name=code_projects
@@ -40,6 +44,8 @@ token="F9zyUdjqi9pKo7QswLKu"
 gitlab="localhost"
 gitlaburl="http://$gitlab:8929"
 gitlab_api(){
+    [[ -z $1 ]] && { echo "Must pass HTTP Method name got: $1"; return; }
+    [[ -z $2 ]] && { echo "Must pass HTTP relative url ie projects/ name got: $2"; return; }
     curl -qs --header "PRIVATE-TOKEN: $token" -X $1 "$gitlaburl/api/v4/$2"
 }
 get_name_from_path(){
@@ -48,16 +54,21 @@ get_name_from_path(){
     echo ${name}
 }
 create_gitlab_project() {
+    [[ -z $1 ]] && { echo "Must pass project name got: $1"; return; }
     gitlab_api POST "projects?name=$(get_name_from_path $1)"
 #    curl --header "PRIVATE-TOKEN: $token" -X POST "$gitlaburl/api/v4/projects?name=$name"
 }
 get_project_id(){
+    [[ -z $1 ]] && { echo "Must pass project name got: $1"; return; }
     gitlab_api GET "projects" | python -c "import json,sys;obj=json.load(sys.stdin);print [i['id'] for i in obj if i['name']=='$(get_name_from_path $1)'][0];"
 }
 rename_project(){
+    [[ -z $1 ]] && { echo "Must pass project name got: $1"; return; }
+    [[ -z $2 ]] && { echo "Must pass new project name got: $2"; return; }
     gitlab_api PUT "projects/$(get_project_id $1)?name=$2&path=$2"
 }
 delete_project(){
+    [[ -z $1 ]] && { echo "Must pass project name got: $1"; return; }
     gitlab_api DELETE "projects/$(get_project_id $1)"
 }
 
@@ -80,20 +91,21 @@ print '|'.join([i['name'] for i in obj ]);\
     ")
     IFS='|' read -ra ADDR <<< "$all_projects"
     for i in "${ADDR[@]}"; do
-        [[ $i == deleted-* ]] && continue
+        [[ ${i} == deleted-* ]] && continue
         if ! ls ${dir}${i} >/dev/null 2>&1; then
             echo "deleted $i, renaming project in gitlab"
-            rename_project ${i} "deleted-$i"
+            rename_project ${i} "deleted-$i-$(date +%s)"
         fi
     done
 }
 
 initial_commit(){
-#    bash --rcfile <(echo ". ~/.bashrc;
+    [[ -z $1 && ! -d $1 ]] && { echo "Must pass valid directory instead got: $1"; return; }
+    [[ -z $2 ]] && n=$(get_name_from_path $1) || n=$2
     bash -c "
     cd $1 || exit 1
     git init
-    git remote add origin ssh://git@${gitlab}:2224/unsupo/$2.git
+    git remote add origin ssh://git@${gitlab}:2224/unsupo/$n.git
     [[ -f README.md ]] || echo \"$1\" > README.md
     git add .
     git commit -m \"Initial commit\"
@@ -101,15 +113,17 @@ initial_commit(){
     " || delete_removed_directories
 }
 commit_project(){
-#    bash --rcfile <(echo ". ~/.bashrc;
+    [[ -z $1 && ! -d $1 ]] && { echo "Must pass valid directory instead got: $1"; return; }
+    [[ -z $2 ]] && m=$(date) || m = $2
     bash -c "
     cd $1 || exit 1 # git repo no longer exists?
     git add . || exit 2
-    git commit -m \"$2\"
-    git push ||  git push --set-upstream origin master
+    git commit -m \"$m\"
+    git push || git push --set-upstream origin master
     "
-    [[ "$?" == "1" ]] && delete_removed_directories
-    [[ "$?" == "2" ]] && initial_commit
+    PC=$?
+    [[ ${PC} -eq 1 ]] && { echo "$? deleting removed directories"; delete_removed_directories; }
+    [[ ${PC} -eq 2 ]] && { echo "$? initial commit"; initial_commit $1 $(get_project_id $1); }
 }
 
 commit_all_directories(){
@@ -134,6 +148,8 @@ init(){
 watch_directory(){
     fswatch=/usr/local/bin/fswatch
     ${fswatch} -uEe '.*/gitlab/[data|logs]/*' -e '.*/\.git' --format '%t|%p|%f' -l5 ~/${dir_name} | while read event; do # Ee '.*/$dir_name/.*/' # exclude # -l300 # latency
+        echo '-----------------------------------------------------'
+        date
         IFS='|' read -ra ADDR <<< "$event"
         d=${ADDR[0]}
         p=${ADDR[1]}
@@ -153,10 +169,14 @@ watch_directory(){
         if [[ "${esARR[${#esARR[@]}-1]}" == "IsFile" ]]; then
             echo "commit_project \"$dir$pd\" ${event}"
             commit_project "$dir$pd" "${event}"
+            date
+            echo '-----------------------------------------------------'
             continue
         fi
         if [[ ${p} =~ ^.*/\$dir_name/.*/$ ]]; then
             echo "continuing because this is a subdirectory $p"
+            date
+            echo '-----------------------------------------------------'
             continue
         fi
         if [[ "${esARR[0]}" == "Created" && "${esARR[${#esARR[@]}-1]}" == "IsDir" ]]; then
@@ -167,13 +187,19 @@ watch_directory(){
         if [[ "${esARR[0]}" == "Deleted" && "${esARR[${#esARR[@]}-1]}" == "IsDir" ]]; then
             echo "deleted project ${p}, renaming to deleted-$p"
 #            delete_project ${p}
-            rename_project ${p} "deleted-$p" # zz so it appears at the bottom of the list
+            rename_project ${p} "deleted-$p-$(date +%s)" # zz so it appears at the bottom of the list
         fi
+        date
+        echo '-----------------------------------------------------'
     done
 }
 
 # this is for missed directories
+echo '-----------------------------------------------------'
+date
 init
+date
+echo '-----------------------------------------------------'
 watch_directory
 
 #gitlab_api GET "/projects/$(get_project_id deleted-deleted-deleted-deleted-deleted-new-project)"
